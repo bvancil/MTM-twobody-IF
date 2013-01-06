@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Two-body 1-D collision</title>
+  <meta name="description" content="IF representation of a two body
+collision using the MTM">
+  <meta name="author" content="Brian Vancil">
+<style>
+table {
+  margin-left:auto; 
+  margin-right:auto;
+}
+td { text-align: center; }
+div.diagram { width:300px; height:300px; }
+</style>
+    <!-- stylesheets -->
+    <link href='http://fonts.googleapis.com/css?family=Lato' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" href="Tangle/Fonts/Insolent/stylesheet.css" type="text/css">
+    <link rel="stylesheet" href="Tangle/Fonts/BorisBlackBloxx/stylesheet.css" type="text/css">
+    <link rel="stylesheet" href="Tangle/style.css" type="text/css">
+
+    <!-- Tangle -->
+    <script type="text/javascript" src="Tangle/Tangle.js"></script>
+
+    <!-- TangleKit -->
+    <link rel="stylesheet" href="Tangle/TangleKit/TangleKit.css" type="text/css">
+    <script type="text/javascript" src="Tangle/TangleKit/mootools.js"></script>
+    <script type="text/javascript" src="Tangle/TangleKit/sprintf.js"></script>
+    <script type="text/javascript" src="Tangle/TangleKit/BVTouchable.js"></script>
+    <script type="text/javascript" src="Tangle/TangleKit/TangleKit.js"></script>
+
+    <!-- examples -->
+    <script type="text/javascript" src="Tangle/Examples/CookieExample.js"></script>
+    <script type="text/javascript" src="Tangle/Examples/ParkExample.js"></script>
+    <script type="text/javascript" src="Tangle/Examples/FilterExample.js"></script>
+    <script type="text/javascript" src="Tangle/Examples/FilterExampleDSP.js"></script>
+<script language="javascript" type="text/javascript" src="flot/excanvas.min.js"></script>
+<script language="javascript" type="text/javascript" src="flot/jquery.js"></script>
+<script language="javascript" type="text/javascript" src="flot/jquery.flot.js"></script>
+<script language="javascript" type="text/javascript" src="flot/jquery.flot.pie.js"></script>
+<script language="javascript" type="text/javascript" src="flot/jquery.flot.categories.js"></script>
+<script language="javascript" type="text/javascript" src="flot-axislabels/jquery.flot.axislabels.js"></script>
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+      displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+      processEscapes: true
+    },
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+<script type="text/javascript">
+function PdatumBuilder(tangle, objectLabel, mass, velocity, color) {
+  function horizpos(tangle, objectLabel) {
+    if (objectLabel=="Object A") {
+      return tangle.getValue("mA")/2;
+    } else if (objectLabel=="Object B") {
+      return tangle.getValue("mA")+1+tangle.getValue("mB")/2;
+    } else {
+      alert("bad object in horizpos in PdatumBuilder");
+    }
+  }
+  return {
+    //data: [["" + tangle.getValue(mass) + " kg", tangle.getValue(velocity)]],
+    //data: [[objectLabel, tangle.getValue(velocity)]],
+    data: [[horizpos(tangle, objectLabel), tangle.getValue(velocity)]],
+    label: objectLabel,
+    color: color,
+    bars: {
+      show: true,
+      barWidth: tangle.getValue(mass),
+    },
+  };
+}
+function plotP(tangle, id, Alabel, Blabel, mA, mB, vA, vB) {
+  function xaxisoptions(tangle) {
+    var mA = tangle.getValue("mA"); var mAlabel = ""+mA+" kg";
+    var mB = tangle.getValue("mB"); var mBlabel = ""+mB+" kg";
+/*    return [{
+      mode: "categories",
+      categories: { "Object A": mA/2, "Object B": mA+mB/2+1  },
+      axisLabel: 'mass [kg]',
+      tickSize: 1,
+      mintickSize: 1,
+      },{
+      position: "bottom",
+      tickSize: 1,
+      }];*/
+    return {
+      position: "bottom",
+      tickSize: 1,
+      axisLabel: 'mass [kg]',
+      };
+  }
+  function yaxisoptions(tangle) {
+    var vAi = tangle.getValue("vAi");
+    var vBi = tangle.getValue("vBi");
+    var vAf = tangle.getValue("vAf");
+    var vBf = tangle.getValue("vBf");
+    var min = Math.min(Math.min(vAi, vBi), Math.min(vAf, vBf));
+    var max = Math.max(Math.max(vAi, vBi), Math.max(vAf, vBf));
+    if (max*min>0) {
+      if (min<0) max = 0;
+      else min = 0;
+    }
+    return {
+      min: min,
+      max: max,
+      axisLabel: 'velocity [m/s]',
+      //tickSize: 1,
+      };
+  }
+  var data = [PdatumBuilder(tangle, Alabel, mA, vA, '#F00'),
+              PdatumBuilder(tangle, Blabel, mB, vB, '#00F')];
+  var options = {
+    series: {
+     bars: {
+       align: "center",
+       },
+      },
+    xaxis: xaxisoptions(tangle),
+    yaxis: yaxisoptions(tangle),
+    };
+  return jQuery.plot(jQuery(id), data, options);
+}
+function plotE(tangle, id, data) {
+  var options = {
+    series: {
+      pie: {
+        show: true,
+        radius: 1,
+        label: {
+          show: true,
+          radius: 0.5,
+          formatter: function(label, series) {
+            return '<div style="text-align:center;padding:2px;color:black;">'+label+'<br/>'+Math.round(series.percent)+'%</div>';
+	  },
+	  background: {opacity: 0},
+	},
+      },
+    },
+    legend: {
+      show: false,
+    },
+  };
+  return jQuery.plot(jQuery(id), data, options);
+}
+function plotPs(tangle, initial_id, final_id) {
+  plotP(tangle, initial_id, "Object A", "Object B", "mA", "mB", "vAi", "vBi");
+  plotP(tangle, final_id, "Object A", "Object B", "mA", "mB", "vAf", "vBf");
+}
+function plotEs(tangle, initial_id, final_id) {
+  plotE(tangle, initial_id, [
+   { label: "\\(K_{A}\\)", data: tangle.getValue("KAi"), color: "#F0F" },
+   { label: "\\(K_{B}\\)", data: tangle.getValue("KBi"), color: "#F0F" },
+  ]);
+  plotE(tangle, final_id, [
+   { label: "\\(K_{A}\\)", data: tangle.getValue("KAf"), color: "#F0F" },
+   { label: "\\(K_{B}\\)", data: tangle.getValue("KBf"), color: "#F0F" },
+   { label: "\\(E_{\\text{th}}\\)", data: tangle.getValue("Etherm"), color: "#F70"},
+  ]);
+  MathJax.Hub.Queue(["Typeset",MathJax.Hub,"Energy"]);
+}
+function plotGraphs(tangle) {
+  plotPs(tangle, "#Pinitial", "#Pfinal");
+  plotEs(tangle, "#Einitial", "#Efinal");
+}
+jQuery(document).ready(function() {
+  var rootElement = document.getElementById("collisionCalculator");
+  var tangle;
+  tangle = new Tangle(rootElement, {
+    initialize: function() { this.mA=1; this.mB=1; this.vAi=60; this.vBi=0; this.COR=0; },
+    update: function() { this.vAf = this.velocityAfterCollision(this.mA, this.vAi, this.mB, this.vBi, this.COR); this.vBf = this.velocityAfterCollision(this.mB, this.vBi, this.mA, this.vAi, this.COR); this.KAi = this.K(this.mA,this.vAi); this.KBi = this.K(this.mB,this.vBi); this.KAf = this.K(this.mA,this.vAf); this.KBf = this.K(this.mB,this.vBf); this.Ki = this.KAi + this.KBi; this.Kf = this.KAf + this.KBf; this.Etherm = this.Ki - this.Kf; if (tangle) plotGraphs(tangle); },
+    velocityAfterCollision: function(m_self, v_self, m_other, v_other, cor) { return ((m_self-cor*m_other)*v_self+(1+cor)*m_other*v_other)/(m_self+m_other); },
+    K: function(m,v) {return 0.5*m*v*v;},
+  });
+  plotGraphs(tangle);
+});
+</script>
+</head>
+<body>
+<div id="everything">
+<div id="header">
+<h1>Two-body 1-D collision</h1>
+</div>
+<div id="body">
+<p>When two objects constrained to move in a single dimension collide,
+nature responds in a rather remarkable way.  The motion of the two
+objects after the collision follows a very specific pattern, which the
+description below allows you to explore.</p>
+<div id="collisionCalculator" class="example">
+<p>When an object "A" with mass <span data-var="mA" class="TKAdjustableNumber">&nbsp;kg</span> moving at a speed of <span data-var="vAi" class="TKAdjustableNumber">&nbsp;m/s</span> collides with an object "B" with mass <span data-var="mB" class="TKAdjustableNumber">&nbsp; kg</span> moving at a speed of <span data-var="vBi" class="TKAdjustableNumber">&nbsp;m/s</span>, what happens depends partly on the nature of the interaction between the objects.  The objects might stick together or they might bounce off.  If you have studied energy, you may realize that some of the energy of the system may turn into thermal energy in the collision.  One way of parameterizing the collision is to describe how the relative speeds of the objects change from before to after the collision.  We call the ratio of the relative speeds the coefficient of restitution, which we will assume is equal to <span data-var="COR" data-min="0" data-step="0.1" data-max="1" class="TKAdjustableNumber"></span>.</p>
+<table>
+<tr><td>Object A</td><td></td><td>Object B</td></tr>
+<tr><td>\(m_A=\ \)<span data-var="mA" class="TKAdjustableNumber">&nbsp;kg</span></td><td>mass</td><td>\(m_B=\ \)<span data-var="mB" class="TKAdjustableNumber">&nbsp;kg</span></td></tr>
+<tr><td>\(\vec{\boldsymbol{v}}_{Ai}=\ \)<span data-var="vAi" class="TKAdjustableNumber">&nbsp;m/s</span></td><td>initial velocity</td><td>\(\vec{\boldsymbol{v}}_{Bi}=\ \)<span data-var="vBi" class="TKAdjustableNumber">&nbsp;m/s</span></td></tr>
+<tr><td>\(\vec{\boldsymbol{v}}_{Af}=\ \)<span data-var="vAf" data-format="%.2f">&nbsp;m/s</span></td><td>final velocity</td><td>\(\vec{\boldsymbol{v}}_{Bf}=\ \)<span data-var="vBf" data-format="%.2f">&nbsp;m/s</span></td></tr>
+</table>
+<table>
+  <tr id="Momentum">
+    <td>Initial momentum bar chart
+      <div id="Pinitial" class="diagram"></div>
+    </td>
+    <td>Momentum</td>
+    <td>Final momentum bar chart
+      <div id="Pfinal" class="diagram"></div>
+    </td>
+  </tr>
+  <tr id="Energy">
+    <td>Initial energy pie chart
+      <div id="Einitial" class="diagram"></div>
+    </td>
+    <td>Energy</td>
+    <td>Final energy pie chart
+      <div id="Efinal" class="diagram"></div>
+    </td>
+  </tr>
+</table>
+<p>The total initial kinetic energy was <span data-var="Ki">&nbsp;J</span>, with <span data-var="KAi">&nbsp;J</span> coming from Object&nbsp;A and <span data-var="KBi">&nbsp;J</span> coming from Object&nbsp;B.  The total final kinetic energy is <span data-var="Kf">&nbsp;J</span>, with <span data-var="KAf">&nbsp;J</span> going to Object&nbsp;A and <span data-var="KBf">&nbsp;J</span> going to Object&nbsp;B.  The kinetic energy &quot;lost&quot; in the collision was <span data-var="Etherm">&nbsp;J</span>, which may be attributed to increased thermal energy (mainly kinetic energy from disordered motion at the molecular level) when the objects collide and the shock waves scatter internally within the objects.</p>
+</div>
+</div>
+<div id="footer">
+<p>This reactive document uses <a href="http://worrydream.com/#!/Tangle">Tangle</a>.</p>
+</div>
+</div>
+</body>
+</html>
